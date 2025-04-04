@@ -4,9 +4,9 @@ import Link from "next/link";
 import React, { useState } from "react";
 import { Button } from "../ui/button";
 import NavLinks from "./nav-links";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 
 function Header() {
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
   return (
     <nav className="container flex items-center justify-between py-4 mx-auto px-2 lg:px-8">
       <NavLinks
@@ -20,17 +20,20 @@ function Header() {
       </NavLinks>
       <div className="flex gap-4 lg:gap-12 items-center">
         <NavLinks href="/#pricing">Pricing</NavLinks>
-        {isLoggedIn && <NavLinks href="/dashboard">Your Summaries</NavLinks>}
+        <SignedIn>
+          <NavLinks href="/dashboard">Your Summaries</NavLinks>
+        </SignedIn>
       </div>
-      {isLoggedIn ? (
+      <SignedIn>
         <div className="flex gap-2 items-center">
           <NavLinks href="/upload">Upload a PDF</NavLinks>
           <div>Pro</div>
-          <Button>User</Button>
+          <UserButton />
         </div>
-      ) : (
+      </SignedIn>
+      <SignedOut>
         <NavLinks href="/sign-in">Sign In</NavLinks>
-      )}
+      </SignedOut>
     </nav>
   );
 }
