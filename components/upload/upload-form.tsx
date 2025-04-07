@@ -4,7 +4,11 @@ import UploadFormInput from "@/components/upload/upload-form-input";
 import { z } from "zod";
 import { useUploadThing } from "@/utils/uploadthing";
 import { toast } from "sonner";
-import { generatePdfSummary } from "@/actions/upload-actions";
+import {
+  generatePdfSummary,
+  storePdfSummaryAction,
+} from "@/actions/upload-actions";
+import { useRouter } from "next/navigation";
 
 const schema = z.object({
   file: z
@@ -21,6 +25,8 @@ const schema = z.object({
 
 const UploadForm = () => {
   const formRef = useRef<HTMLFormElement>(null);
+
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const { startUpload, routeConfig } = useUploadThing("pdfUploader", {
     onClientUploadComplete: () => {
@@ -68,16 +74,29 @@ const UploadForm = () => {
       const { data = null, message = null } = result || {};
 
       if (data) {
+        let storeResult: any;
         toast("Hang tight! We are saving your summary");
-        formRef.current?.reset();
+
         if (data.summary) {
           // save the summary to database
+          storeResult = await storePdfSummaryAction({
+            summary: data.summary,
+            fileUrl: resp[0].serverData.file.url,
+            title: data.title,
+            fileName: file.name,
+          });
+          toast("Your PDF has been successfully summarized and saved");
+          formRef.current?.reset();
+          setIsLoading(false);
+          router.push(`/summaries/${storeResult.data.id}`);
         }
       }
     } catch (err) {
       console.error("Error occurred", err);
       setIsLoading(false);
       formRef.current?.reset();
+    } finally {
+      setIsLoading(false);
     }
 
     // summarize the pdf using AI
