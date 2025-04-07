@@ -57,13 +57,11 @@ export async function generatePdfSummary(
     let summary;
     try {
       summary = await generateSummaryFromOpenAI(pdfText);
-      console.log(summary);
     } catch (error) {
       console.log(error);
       if (error instanceof Error && error.message === "RATE_LIMIT_EXCEEDED") {
         try {
           summary = await generateSummaryFromGemini(pdfText);
-          console.log(summary);
         } catch (geminiError) {
           console.error(
             "Gemini API failed after OPpenAI quota exceeded",
@@ -113,19 +111,23 @@ async function savePdfSummary({
   // sql inserting pdf summary
   try {
     const sql = await getDbConnection();
-    await sql`INSERT INTO pdf_summaries (
-      user_id,
-      original_file_url,
-      summary_text,
-      title,
-      file_name
-    ) VALUES (
-      ${userId},
-      ${fileUrl},
-      ${summary},
-      ${title},
-      ${fileName}
-    )`;
+    const [newRecord] = await sql`
+      INSERT INTO pdf_summaries (
+        user_id,
+        original_file_url,
+        summary_text,
+        title,
+        file_name
+      ) VALUES (
+        ${userId},
+        ${fileUrl},
+        ${summary},
+        ${title},
+        ${fileName}
+      ) RETURNING *;
+    `;
+
+    return newRecord;
   } catch (error) {
     console.error("Error saving PDF summary", error);
     throw error;
@@ -158,7 +160,7 @@ export async function storePdfSummaryAction({
       title,
       fileName,
     });
-    if (!savePdfSummary) {
+    if (!savedPdfSummary) {
       return {
         success: false,
         message: "Failed to save PDF summary",
